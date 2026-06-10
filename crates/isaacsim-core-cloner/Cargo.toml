@@ -1,0 +1,13 @@
+[package]
+name = "isaacsim-core-cloner"
+description = "Object duplication APIs for Isaac Sim (port of isaacsim.core.cloner)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+isaacsim-scene = { path = "../isaacsim-scene" }
+
+[lints]
+workspace = true

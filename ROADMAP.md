@@ -55,9 +55,15 @@ Math/transform utilities, version/config handling, pure-Python algorithm ports.
 - [x] Remaining Phase 1 rows triaged as n/a (Python import shims, C++ headers,
   Kit test scaffolding — no Rust equivalent needed)
 
-### Phase 2 — Scene & simulation core
+### Phase 2 — Scene & simulation core 🚧
 USD bindings, simulation manager, cloner, prim wrappers. Requires a USD
 strategy decision (FFI vs. native Rust USD).
+- [x] `isaacsim-scene` — in-memory stage/prim data model (paths, typed
+  attributes, inherit composition); the native backend behind which a real
+  USD backend (FFI or `openusd-rs`) can be bound later
+- [x] `isaacsim-core-cloner` — Cloner + GridCloner on top of `isaacsim-scene`
+- [ ] USD backend decision (FFI vs. `openusd-rs`) and binding crate
+- [ ] Simulation manager, prim wrappers, remaining Phase 2 rows
 
 ### Phase 3 — Robotics stack
 Importers (URDF/MJCF), motion generation, robot setup tools, sensors.
@@ -79,7 +85,7 @@ names map `isaacsim.foo.bar` → `isaacsim-foo-bar`.
 | Legacy extension | Rust crate | Phase | Status |
 |---|---|---|---|
 | isaacsim.core.version | `isaacsim-core-version` | 1 | ✅ |
-| isaacsim.core.cloner | — | 2 | ⬜ |
+| isaacsim.core.cloner | `isaacsim-core-cloner` (+ `isaacsim-scene`) | 2 | ✅ clone/grid-clone with inherit & copy semantics, legacy tests ported; PhysX replication, collision filtering, Fabric paths ⛔ PhysX/Kit |
 | isaacsim.core.deprecation_manager | — | 1 | n/a — Python import shim around carb/Kit; no Rust equivalent needed |
 | isaacsim.core.experimental.actuators | — | 2 | ⬜ |
 | isaacsim.core.experimental.materials | — | 2 | ⬜ |

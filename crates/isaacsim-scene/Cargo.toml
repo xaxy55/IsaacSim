@@ -1,0 +1,10 @@
+[package]
+name = "isaacsim-scene"
+description = "In-memory scene representation for Isaac Sim (native backend behind which USD can be bound later)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
