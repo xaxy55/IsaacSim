@@ -46,7 +46,7 @@ impl GridCloner {
     }
 
     /// Create a `Scope` prim at `base_env_path` (see [`Cloner::define_base_env`]).
-    pub fn define_base_env<S: SceneStage>(
+    pub fn define_base_env<S: SceneStage + ?Sized>(
         &mut self,
         stage: &mut S,
         base_env_path: &str,
@@ -70,7 +70,7 @@ impl GridCloner {
     /// Errors if an offset array length does not match `num_clones` or
     /// `num_per_row` is zero.
     #[allow(clippy::type_complexity)]
-    pub fn get_clone_transforms<S: SceneStage>(
+    pub fn get_clone_transforms<S: SceneStage + ?Sized>(
         &mut self,
         stage: &S,
         num_clones: usize,
@@ -160,7 +160,7 @@ impl GridCloner {
     /// Create clones in a grid pattern with automatically computed positions.
     ///
     /// Returns the computed positions of all clones.
-    pub fn clone<S: SceneStage>(
+    pub fn clone<S: SceneStage + ?Sized>(
         &mut self,
         stage: &mut S,
         source_prim_path: &str,

@@ -56,7 +56,7 @@ impl Cloner {
 
     /// Create a `Scope` prim at `base_env_path`, designed to be the parent
     /// that holds all clones.
-    pub fn define_base_env<S: SceneStage>(
+    pub fn define_base_env<S: SceneStage + ?Sized>(
         &mut self,
         stage: &mut S,
         base_env_path: &str,
@@ -80,7 +80,7 @@ impl Cloner {
     ///
     /// Errors if the source path is invalid, the source prim does not exist,
     /// or the dimensions of positions/orientations do not match `prim_paths`.
-    pub fn clone<S: SceneStage>(
+    pub fn clone<S: SceneStage + ?Sized>(
         &mut self,
         stage: &mut S,
         source_prim_path: &str,

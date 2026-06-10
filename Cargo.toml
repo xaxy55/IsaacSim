@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/isaacsim-asset-urdf",
     "crates/isaacsim-core-cloner",
     "crates/isaacsim-core-math",
     "crates/isaacsim-core-version",

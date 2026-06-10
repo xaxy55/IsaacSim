@@ -68,11 +68,23 @@ USD bindings, simulation manager, cloner, prim wrappers.
   Rust-authored stages verified against real USD (pxr 26.5 opens exported
   files; inherit composition, types, and transforms resolve identically;
   pxr-authored files parse back)
-- [ ] OpenUSD FFI binding crate (needs a USD build in the dev environment)
+- [x] `SceneStage` backend trait — the cloner and future logic-layer code
+  are generic over the backend
+- [x] `isaacsim-usd` — OpenUSD FFI binding crate (C ABI shim + Rust
+  `UsdStage` implementing `SceneStage`, behind the `openusd` feature with
+  `USD_ROOT` pointing at an OpenUSD install). Verified: the ported cloner
+  runs unchanged on real USD stages (built from OpenUSD v25.11 source,
+  imaging/python off) and both backends produce identical results
 - [ ] Simulation manager, prim wrappers, remaining Phase 2 rows
 
-### Phase 3 — Robotics stack
+### Phase 3 — Robotics stack 🚧
 Importers (URDF/MJCF), motion generation, robot setup tools, sensors.
+- [x] `isaacsim-asset-urdf` — URDF parsing layer: XML → robot model
+  (links, joints, limits, dynamics, mimic, safety, materials, geometry),
+  `merge_fixed_joints` pre-processing (transform composition + parallel-axis
+  inertia merging), and a URDF writer. Legacy `test_urdf_utils.py` ported;
+  legacy fixture files parse. USD conversion stays downstream (mesh handling
+  and PhysX setup are ⛔)
 
 ### Phase 4 — Connectivity & pipelines
 ROS 2 bridge, UCX, streaming, replicator/synthetic-data writers.
@@ -135,7 +147,7 @@ names map `isaacsim.foo.bar` → `isaacsim-foo-bar`.
 | isaacsim.asset.gen.omap (+ .ui) | — | 3 | ⬜ |
 | isaacsim.asset.importer.heightmap | — | 3 | ⬜ |
 | isaacsim.asset.importer.mjcf (+ .ui) | — | 3 | ⬜ |
-| isaacsim.asset.importer.urdf (+ .ui) | — | 3 | ⬜ |
+| isaacsim.asset.importer.urdf (+ .ui) | `isaacsim-asset-urdf` (parsing layer) | 3 | 🚧 parser + merge_fixed_joints ported with legacy tests; USD conversion/mesh/PhysX downstream |
 | isaacsim.asset.importer.utils | — | 3 | ⬜ |
 | isaacsim.asset.transformer (+ .rules, .ui) | — | 3 | ⬜ |
 | isaacsim.asset.validation | — | 3 | ⬜ |
