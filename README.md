@@ -1,4 +1,4 @@
-![Isaac Sim](docs/readme/hero_shot_compressed.png)
+![Isaac Sim](legacy/docs/readme/hero_shot_compressed.png)
 
 ---
 # Isaac Sim
@@ -8,6 +8,13 @@
 [![Linux aarch64 platform](https://img.shields.io/badge/platform-linux--aarch64-orange.svg)](https://docs.nvidia.com/dgx/dgx-os-7-user-guide/introduction.html)
 [![Windows platform](https://img.shields.io/badge/platform-windows--64-orange.svg)](https://www.microsoft.com/en-us/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-yellow.svg)](LICENSE)
+
+> [!IMPORTANT]
+> **🦀 Rust rewrite in progress.** This fork is incrementally rewriting Isaac Sim in Rust.
+>
+> - **New Rust code** lives in [`crates/`](crates/) as a Cargo workspace — build with `cargo build` and test with `cargo test` from the repo root.
+> - **Status tracking** is in [`ROADMAP.md`](ROADMAP.md), with one row per legacy extension.
+> - **The original C++/Python codebase** has been moved unchanged to [`legacy/`](legacy/) and remains the reference implementation. All build instructions below (e.g. `build.sh`, `repo.sh`) now apply inside the `legacy/` directory.
 
 NVIDIA Isaac Sim™ is a simulation platform built on NVIDIA Omniverse, designed to develop, test, train, and deploy AI-powered robots in realistic virtual environments. It supports importing robotic systems from common formats such as URDF, MJCF, and CAD. The simulator leverages high-fidelity, GPU-accelerated physics engines to simulate accurate dynamics and support multi-sensor RTX rendering at scale. It comes equipped with end-to-end workflows including synthetic data generation, reinforcement learning, ROS integration, and digital twin simulation. Isaac Sim provides the infrastructure needed to support robotics development at any stage.
 
@@ -78,7 +85,7 @@ Ensure your system is set up with the following before building Isaac Sim:
   winget install --id=Microsoft.VisualStudio.Community -e --override "--add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended"
   ```
   
-  [Additional information on Windows development configuration](docs/readme/windows_developer_configuration.md)
+  [Additional information on Windows development configuration](legacy/docs/readme/windows_developer_configuration.md)
 
 
 - **(Linux) build-essentials**: A package that includes `make` and other essential tools for building applications.  For Ubuntu, install with:
@@ -285,7 +292,7 @@ python -m pip install _build/packages/dist/*.whl
 
 ### Container (Docker)
 
-For building a Docker image, running with Docker Compose, and web-based streaming, see [tools/docker/README.md](tools/docker/README.md).
+For building a Docker image, running with Docker Compose, and web-based streaming, see [tools/docker/README.md](legacy/tools/docker/README.md).
 
 
 ## Troubleshooting

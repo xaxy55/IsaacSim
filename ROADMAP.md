@@ -1,0 +1,177 @@
+# Isaac Sim → Rust Rewrite Roadmap
+
+This document tracks the status of rewriting Isaac Sim in Rust. The original
+C++/Python/Omniverse-Kit codebase has been moved to [`legacy/`](legacy/) and
+remains the reference implementation. New Rust code lives in
+[`crates/`](crates/) as a Cargo workspace.
+
+**Last updated:** 2026-06-10
+
+## Status legend
+
+| Symbol | Meaning |
+|--------|---------|
+| ✅ | Ported — Rust implementation with tests, behavior verified against legacy |
+| 🚧 | In progress |
+| 📋 | Planned — scoped but not started |
+| ⬜ | Not started |
+| ⛔ | Blocked — depends on closed-source or external components (see notes) |
+
+## Reality check / constraints
+
+Isaac Sim is not a self-contained codebase. The `legacy/` tree (~2,300 Python
+files, ~380 C++ files across 123 Kit extensions) is the *open* layer on top of
+closed-source NVIDIA components that cannot be rewritten from this repository:
+
+- **Omniverse Kit** — the application framework, extension loader, UI (omni.ui)
+- **RTX renderer** — the rendering stack
+- **PhysX / Newton solvers** — physics engines (Newton is open source and could
+  be bound, not rewritten)
+- **OpenUSD** — scene representation (open source; the Rust strategy is to use
+  [`openusd-rs`](https://crates.io/crates/openusd) bindings or FFI to the C++
+  library, not a rewrite)
+
+The strategy is therefore: **port the Isaac Sim logic layer to Rust**
+(controllers, kinematics, utilities, importers/exporters, data pipelines,
+networking bridges), and **bind** to external engines (USD, physics, rendering)
+behind Rust traits so backends can be swapped later.
+
+## Phases
+
+### Phase 0 — Foundation (this PR)
+- [x] Move legacy codebase to `legacy/`
+- [x] Cargo workspace scaffolding (`crates/`)
+- [x] CI-friendly build (`cargo build && cargo test` from repo root)
+- [x] First ports: `isaacsim.core.version`, wheeled-robot controllers
+- [x] `isaacsim` CLI binary stub
+
+### Phase 1 — Core utilities (pure logic, no Kit/USD dependency)
+Math/transform utilities, version/config handling, pure-Python algorithm ports.
+
+### Phase 2 — Scene & simulation core
+USD bindings, simulation manager, cloner, prim wrappers. Requires a USD
+strategy decision (FFI vs. native Rust USD).
+
+### Phase 3 — Robotics stack
+Importers (URDF/MJCF), motion generation, robot setup tools, sensors.
+
+### Phase 4 — Connectivity & pipelines
+ROS 2 bridge, UCX, streaming, replicator/synthetic-data writers.
+
+### Phase 5 — Application layer
+App shell, GUI, examples, benchmarking. Blocked on a UI framework decision
+(legacy uses omni.ui, which only exists inside Kit).
+
+## Module status
+
+One row per legacy extension (`legacy/source/extensions/<name>`). Rust crate
+names map `isaacsim.foo.bar` → `isaacsim-foo-bar`.
+
+### isaacsim.core (14)
+
+| Legacy extension | Rust crate | Phase | Status |
+|---|---|---|---|
+| isaacsim.core.version | `isaacsim-core-version` | 1 | ✅ |
+| isaacsim.core.cloner | — | 2 | ⬜ |
+| isaacsim.core.deprecation_manager | — | 1 | ⬜ |
+| isaacsim.core.experimental.actuators | — | 2 | ⬜ |
+| isaacsim.core.experimental.materials | — | 2 | ⬜ |
+| isaacsim.core.experimental.objects | — | 2 | ⬜ |
+| isaacsim.core.experimental.primdata | — | 2 | ⬜ |
+| isaacsim.core.experimental.prims | — | 2 | ⬜ |
+| isaacsim.core.experimental.utils | `isaacsim-core-math` (transform subset) | 1 | 📋 |
+| isaacsim.core.includes | — (C++ headers; superseded by crate APIs) | 1 | ⬜ |
+| isaacsim.core.nodes | — | 2 | ⬜ |
+| isaacsim.core.rendering_manager | — | 5 | ⛔ RTX |
+| isaacsim.core.simulation_manager | — | 2 | ⬜ |
+| isaacsim.core.throttling | — | 2 | ⬜ |
+
+### isaacsim.robot / robot_motion / robot_setup (22)
+
+| Legacy extension | Rust crate | Phase | Status |
+|---|---|---|---|
+| isaacsim.robot.experimental.wheeled_robots | `isaacsim-robot-wheeled` | 1 | 🚧 differential + Ackermann controllers ported; holonomic, Stanley, quintic planner remaining |
+| isaacsim.robot.experimental.manipulators.examples | — | 3 | ⬜ |
+| isaacsim.robot.policy.examples | — | 3 | ⬜ |
+| isaacsim.robot.poser (+ .ui) | — | 3 | ⬜ |
+| isaacsim.robot.schema (+ .ui) | — | 3 | ⬜ |
+| isaacsim.robot.surface_gripper (+ .ui) | — | 3 | ⬜ |
+| isaacsim.robot.wheeled_robots.nodes (+ .ui) | — | 3 | ⬜ |
+| isaacsim.robot_motion.cumotion (+ .examples) | — | 3 | ⛔ cuMotion (CUDA) |
+| isaacsim.robot_motion.experimental.motion_generation | — | 3 | ⬜ |
+| isaacsim.robot_motion.pink (+ .examples) | — | 3 | ⬜ |
+| isaacsim.robot_motion.schema | — | 3 | ⬜ |
+| isaacsim.robot_setup.assembler | — | 3 | ⬜ |
+| isaacsim.robot_setup.collision_detector | — | 3 | ⬜ |
+| isaacsim.robot_setup.gain_tuner | — | 3 | ⬜ |
+| isaacsim.robot_setup.grasp_editor | — | 3 | ⬜ |
+| isaacsim.robot_setup.xrdf_editor | — | 3 | ⬜ |
+
+### isaacsim.asset (16)
+
+| Legacy extension | Rust crate | Phase | Status |
+|---|---|---|---|
+| isaacsim.asset.exporter.urdf (+ .ui) | — | 3 | ⬜ |
+| isaacsim.asset.gen.conveyor (+ .ui) | — | 3 | ⬜ |
+| isaacsim.asset.gen.omap (+ .ui) | — | 3 | ⬜ |
+| isaacsim.asset.importer.heightmap | — | 3 | ⬜ |
+| isaacsim.asset.importer.mjcf (+ .ui) | — | 3 | ⬜ |
+| isaacsim.asset.importer.urdf (+ .ui) | — | 3 | ⬜ |
+| isaacsim.asset.importer.utils | — | 3 | ⬜ |
+| isaacsim.asset.transformer (+ .rules, .ui) | — | 3 | ⬜ |
+| isaacsim.asset.validation | — | 3 | ⬜ |
+
+### isaacsim.sensors (8)
+
+| Legacy extension | Rust crate | Phase | Status |
+|---|---|---|---|
+| isaacsim.sensors.camera.ui | — | 5 | ⬜ |
+| isaacsim.sensors.experimental.physics | — | 3 | ⬜ |
+| isaacsim.sensors.experimental.rtx | — | 3 | ⛔ RTX |
+| isaacsim.sensors.physics.examples / .nodes / .ui | — | 3 | ⬜ |
+| isaacsim.sensors.rtx.nodes / .ui | — | 3 | ⛔ RTX |
+
+### isaacsim.ros2 / ucx / streaming (12)
+
+| Legacy extension | Rust crate | Phase | Status |
+|---|---|---|---|
+| isaacsim.ros2.bridge / .core / .nodes / .examples | — | 4 | ⬜ (candidate: `r2r` or `rclrs`) |
+| isaacsim.ros2.sim_control / .tf_viewer / .ui / .urdf | — | 4 | ⬜ |
+| isaacsim.ucx.bridge / .core / .nodes | — | 4 | ⬜ |
+| isaacsim.streaming.rtsp | — | 4 | ⬜ |
+
+### isaacsim.replicator (15)
+
+| Legacy extension | Rust crate | Phase | Status |
+|---|---|---|---|
+| isaacsim.replicator.* (behavior, episode_recorder, examples, domain_randomization, mobility_gen, grasping, synthetic_recorder, teleop, writers + ui variants) | — | 4 | ⬜ depends on omni.replicator (Kit) |
+
+### isaacsim.physics (3)
+
+| Legacy extension | Rust crate | Phase | Status |
+|---|---|---|---|
+| isaacsim.physics.newton (+ .tensors, .ui) | — | 2 | ⬜ bind Newton, don't rewrite |
+
+### App / GUI / examples / misc (33)
+
+| Legacy extension | Rust crate | Phase | Status |
+|---|---|---|---|
+| isaacsim.app.about / .setup | `isaacsim-app` (CLI stub) | 5 | 🚧 |
+| isaacsim.simulation_app | — | 5 | ⬜ |
+| isaacsim.gui.* (5) | — | 5 | ⛔ omni.ui — needs Rust UI framework decision |
+| isaacsim.examples.* (5) | — | 5 | ⬜ |
+| isaacsim.benchmark.services | — | 5 | ⬜ |
+| isaacsim.code_editor.* (3) | — | 4 | ⬜ |
+| isaacsim.hsb.* (3) | — | 4 | ⬜ |
+| isaacsim.storage.native | — | 2 | ⬜ |
+| isaacsim.test.* (3) | — (replaced by `cargo test`) | 1 | ⬜ |
+| isaacsim.util.camera_inspector / .physics | — | 3 | ⬜ |
+| isaacsim.pip.newton, omni.pip.* | — (replaced by Cargo dependencies) | — | n/a |
+| omni.isaac.core_archive, omni.kit.loop-isaac | — | 2 | ⬜ |
+| omni.usd.schema.mujoco / .newton | — | 2 | ⬜ USD schemas |
+
+## How to update this file
+
+When you port a module: create the crate under `crates/`, add it to the
+workspace `Cargo.toml`, port the legacy tests, then flip the row here to ✅
+with the crate name and bump **Last updated**.
