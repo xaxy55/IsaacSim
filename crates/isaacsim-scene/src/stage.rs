@@ -147,6 +147,11 @@ impl Stage {
             .flatten()
     }
 
+    /// All authored prim specs in path order.
+    pub fn prims(&self) -> impl Iterator<Item = (&str, &Prim)> {
+        self.prims.iter().map(|(p, prim)| (p.as_str(), prim))
+    }
+
     /// Direct children of the prim at `path` (authored specs only).
     pub fn children(&self, path: &str) -> Vec<&str> {
         let prefix = if path == "/" {

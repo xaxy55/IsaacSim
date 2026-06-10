@@ -11,8 +11,10 @@
 
 pub mod path;
 pub mod stage;
+pub mod usda;
 pub mod value;
 
 pub use path::{is_valid_path_string, parent_path};
 pub use stage::{Prim, Stage, UpAxis};
+pub use usda::{parse_usda, write_usda};
 pub use value::Value;

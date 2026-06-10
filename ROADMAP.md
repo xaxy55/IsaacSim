@@ -56,13 +56,19 @@ Math/transform utilities, version/config handling, pure-Python algorithm ports.
   Kit test scaffolding — no Rust equivalent needed)
 
 ### Phase 2 — Scene & simulation core 🚧
-USD bindings, simulation manager, cloner, prim wrappers. Requires a USD
-strategy decision (FFI vs. native Rust USD).
+USD bindings, simulation manager, cloner, prim wrappers.
 - [x] `isaacsim-scene` — in-memory stage/prim data model (paths, typed
   attributes, inherit composition); the native backend behind which a real
-  USD backend (FFI or `openusd-rs`) can be bound later
+  USD backend can be bound later
 - [x] `isaacsim-core-cloner` — Cloner + GridCloner on top of `isaacsim-scene`
-- [ ] USD backend decision (FFI vs. `openusd-rs`) and binding crate
+- [x] **USD strategy decided:** FFI to the C++ OpenUSD library behind the
+  `isaacsim-scene` API (`openusd-rs` is not yet complete enough for
+  composition/physics schemas); the in-memory backend remains for tests
+- [x] `.usda` interop — `isaacsim-scene::usda` writer + subset reader.
+  Rust-authored stages verified against real USD (pxr 26.5 opens exported
+  files; inherit composition, types, and transforms resolve identically;
+  pxr-authored files parse back)
+- [ ] OpenUSD FFI binding crate (needs a USD build in the dev environment)
 - [ ] Simulation manager, prim wrappers, remaining Phase 2 rows
 
 ### Phase 3 — Robotics stack
