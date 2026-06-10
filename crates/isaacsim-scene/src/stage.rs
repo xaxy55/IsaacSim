@@ -25,7 +25,7 @@ pub enum UpAxis {
     Z,
 }
 
-/// A prim spec: type name, attributes, and inherit list.
+/// A prim spec: type name, attributes, relationships, and inherit list.
 #[derive(Debug, Clone, Default)]
 pub struct Prim {
     /// Prim type name (e.g. `"Cube"`, `"Xform"`, `"Scope"`); empty for
@@ -33,6 +33,8 @@ pub struct Prim {
     pub type_name: String,
     /// Authored attributes by name.
     pub attributes: BTreeMap<String, Value>,
+    /// Authored relationships by name (target prim paths).
+    pub relationships: BTreeMap<String, Vec<String>>,
     /// Paths this prim inherits from, strongest first.
     pub inherits: Vec<String>,
 }
@@ -131,6 +133,28 @@ impl Stage {
         if !prim.inherits.iter().any(|p| p == source) {
             prim.inherits.insert(0, source.to_string());
         }
+        Ok(())
+    }
+
+    /// The composed targets of relationship `name` on the prim at `path`.
+    pub fn relationship_targets(&self, path: &str, name: &str) -> Option<Vec<String>> {
+        self.compose(path, &mut |prim| prim.relationships.get(name).cloned())
+            .flatten()
+    }
+
+    /// Author relationship `name` on the prim at `path`. Errors if the prim
+    /// spec does not exist.
+    pub fn set_relationship_targets(
+        &mut self,
+        path: &str,
+        name: &str,
+        targets: &[String],
+    ) -> Result<(), String> {
+        let prim = self
+            .prims
+            .get_mut(path)
+            .ok_or_else(|| format!("prim {path} does not exist"))?;
+        prim.relationships.insert(name.to_string(), targets.to_vec());
         Ok(())
     }
 
@@ -300,6 +324,26 @@ impl crate::backend::SceneStage for Stage {
 
     fn copy_spec(&mut self, source: &str, dest: &str) -> Result<(), String> {
         Stage::copy_spec(self, source, dest)
+    }
+
+    fn children(&self, path: &str) -> Vec<String> {
+        Stage::children(self, path)
+            .into_iter()
+            .map(str::to_string)
+            .collect()
+    }
+
+    fn relationship_targets(&self, path: &str, name: &str) -> Option<Vec<String>> {
+        Stage::relationship_targets(self, path, name)
+    }
+
+    fn set_relationship_targets(
+        &mut self,
+        path: &str,
+        name: &str,
+        targets: &[String],
+    ) -> Result<(), String> {
+        Stage::set_relationship_targets(self, path, name, targets)
     }
 }
 

@@ -48,4 +48,34 @@ pub trait SceneStage {
 
     /// Deep-copy the prim subtree at `source` to `dest` (`Sdf.CopySpec`).
     fn copy_spec(&mut self, source: &str, dest: &str) -> Result<(), String>;
+
+    /// Paths of the direct children of the prim at `path`.
+    fn children(&self, path: &str) -> Vec<String>;
+
+    /// The composed targets of relationship `name` on the prim at `path`,
+    /// or `None` if the relationship does not exist.
+    fn relationship_targets(&self, path: &str, name: &str) -> Option<Vec<String>>;
+
+    /// Author relationship `name` on the prim at `path` with the given
+    /// target paths.
+    fn set_relationship_targets(
+        &mut self,
+        path: &str,
+        name: &str,
+        targets: &[String],
+    ) -> Result<(), String>;
+}
+
+/// Depth-first pre-order traversal of the subtree rooted at `path`,
+/// including `path` itself (`Usd.PrimRange` semantics).
+pub fn descendants<S: SceneStage + ?Sized>(stage: &S, path: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut pending = vec![path.to_string()];
+    while let Some(current) = pending.pop() {
+        let mut children = stage.children(&current);
+        children.reverse(); // pop() visits in document order
+        out.push(current);
+        pending.extend(children);
+    }
+    out
 }

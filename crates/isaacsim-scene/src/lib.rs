@@ -14,8 +14,9 @@ pub mod path;
 pub mod stage;
 pub mod usda;
 pub mod value;
+pub mod xform;
 
-pub use backend::SceneStage;
+pub use backend::{descendants, SceneStage};
 pub use path::{is_valid_path_string, parent_path};
 pub use stage::{Prim, Stage, UpAxis};
 pub use usda::{parse_usda, write_usda};

@@ -20,6 +20,7 @@
 #include <pxr/usd/usd/attribute.h>
 #include <pxr/usd/usd/inherits.h>
 #include <pxr/usd/usd/prim.h>
+#include <pxr/usd/usd/relationship.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usdGeom/metrics.h>
 #include <pxr/usd/usdGeom/tokens.h>
@@ -142,6 +143,65 @@ bool isaacsim_usd_copy_spec(void* handle, const char* source, const char* dest) 
     }
     SdfCreatePrimInLayer(layer, dest_path);
     return SdfCopySpec(layer, source_path, layer, dest_path);
+}
+
+// Returns the direct child paths joined with '\x1f' ("" for a leaf prim),
+// or nullptr if the prim does not exist.
+char* isaacsim_usd_children(void* handle, const char* path) {
+    UsdPrim prim = std::strcmp(path, "/") == 0
+                       ? stage(handle)->GetPseudoRoot()
+                       : stage(handle)->GetPrimAtPath(SdfPath(path));
+    if (!prim) {
+        return nullptr;
+    }
+    std::string joined;
+    bool first = true;
+    for (const UsdPrim& child : prim.GetChildren()) {
+        if (!first) {
+            joined.push_back('\x1f');
+        }
+        joined += child.GetPath().GetString();
+        first = false;
+    }
+    return dup_string(joined);
+}
+
+// Returns the relationship targets joined with '\x1f', or nullptr if the
+// prim or relationship does not exist.
+char* isaacsim_usd_relationship_targets(void* handle, const char* path, const char* name) {
+    UsdPrim prim = stage(handle)->GetPrimAtPath(SdfPath(path));
+    if (!prim) {
+        return nullptr;
+    }
+    UsdRelationship rel = prim.GetRelationship(TfToken(name));
+    if (!rel) {
+        return nullptr;
+    }
+    SdfPathVector targets;
+    rel.GetTargets(&targets);
+    std::string joined;
+    for (size_t i = 0; i < targets.size(); ++i) {
+        if (i > 0) {
+            joined.push_back('\x1f');
+        }
+        joined += targets[i].GetString();
+    }
+    return dup_string(joined);
+}
+
+bool isaacsim_usd_set_relationship_targets(void* handle, const char* path, const char* name,
+                                           const char* const* targets, int count) {
+    UsdPrim prim = stage(handle)->GetPrimAtPath(SdfPath(path));
+    if (!prim) {
+        return false;
+    }
+    UsdRelationship rel = prim.CreateRelationship(TfToken(name), /*custom=*/false);
+    SdfPathVector paths;
+    paths.reserve(count);
+    for (int i = 0; i < count; ++i) {
+        paths.emplace_back(targets[i]);
+    }
+    return rel.SetTargets(paths);
 }
 
 bool isaacsim_usd_remove_attribute(void* handle, const char* path, const char* name) {

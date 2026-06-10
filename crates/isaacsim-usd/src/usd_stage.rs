@@ -127,6 +127,28 @@ extern "C" {
         out: *mut f64,
         out_str: *mut *mut c_char,
     ) -> i32;
+    fn isaacsim_usd_children(handle: *mut c_void, path: *const c_char) -> *mut c_char;
+    fn isaacsim_usd_relationship_targets(
+        handle: *mut c_void,
+        path: *const c_char,
+        name: *const c_char,
+    ) -> *mut c_char;
+    fn isaacsim_usd_set_relationship_targets(
+        handle: *mut c_void,
+        path: *const c_char,
+        name: *const c_char,
+        targets: *const *const c_char,
+        count: i32,
+    ) -> bool;
+}
+
+/// Split a `'\x1f'`-joined list returned by the shim.
+fn split_list(joined: String) -> Vec<String> {
+    if joined.is_empty() {
+        Vec::new()
+    } else {
+        joined.split('\x1f').map(str::to_string).collect()
+    }
 }
 
 /// USD attribute names declared with `uniform` variability.
@@ -359,6 +381,50 @@ impl SceneStage for UsdStage {
             Ok(())
         } else {
             Err(format!("failed to copy spec {source} -> {dest}"))
+        }
+    }
+
+    fn children(&self, path: &str) -> Vec<String> {
+        let Ok(c_path) = cstring(path) else {
+            return Vec::new();
+        };
+        take_string(unsafe { isaacsim_usd_children(self.handle, c_path.as_ptr()) })
+            .map(split_list)
+            .unwrap_or_default()
+    }
+
+    fn relationship_targets(&self, path: &str, name: &str) -> Option<Vec<String>> {
+        let c_path = cstring(path).ok()?;
+        let c_name = cstring(name).ok()?;
+        take_string(unsafe {
+            isaacsim_usd_relationship_targets(self.handle, c_path.as_ptr(), c_name.as_ptr())
+        })
+        .map(split_list)
+    }
+
+    fn set_relationship_targets(
+        &mut self,
+        path: &str,
+        name: &str,
+        targets: &[String],
+    ) -> Result<(), String> {
+        let c_path = cstring(path)?;
+        let c_name = cstring(name)?;
+        let c_targets: Result<Vec<CString>, String> = targets.iter().map(|t| cstring(t)).collect();
+        let c_targets = c_targets?;
+        let ptrs: Vec<*const c_char> = c_targets.iter().map(|t| t.as_ptr()).collect();
+        if unsafe {
+            isaacsim_usd_set_relationship_targets(
+                self.handle,
+                c_path.as_ptr(),
+                c_name.as_ptr(),
+                ptrs.as_ptr(),
+                ptrs.len() as i32,
+            )
+        } {
+            Ok(())
+        } else {
+            Err(format!("failed to set relationship {name} on {path}"))
         }
     }
 }

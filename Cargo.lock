@@ -37,17 +37,22 @@ name = "isaacsim-robot-wheeled"
 version = "6.0.0-rc.59"
 dependencies = [
  "isaacsim-core-math",
+ "isaacsim-scene",
 ]
 
 [[package]]
 name = "isaacsim-scene"
 version = "6.0.0-rc.59"
+dependencies = [
+ "isaacsim-core-math",
+]
 
 [[package]]
 name = "isaacsim-usd"
 version = "6.0.0-rc.59"
 dependencies = [
  "isaacsim-core-cloner",
+ "isaacsim-robot-wheeled",
  "isaacsim-scene",
 ]
 

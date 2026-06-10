@@ -69,7 +69,8 @@ USD bindings, simulation manager, cloner, prim wrappers.
   files; inherit composition, types, and transforms resolve identically;
   pxr-authored files parse back)
 - [x] `SceneStage` backend trait — the cloner and future logic-layer code
-  are generic over the backend
+  are generic over the backend; includes relationships, child traversal,
+  and TRS world-transform composition (`isaacsim-scene::xform`)
 - [x] `isaacsim-usd` — OpenUSD FFI binding crate (C ABI shim + Rust
   `UsdStage` implementing `SceneStage`, behind the `openusd` feature with
   `USD_ROOT` pointing at an OpenUSD install). Verified: the ported cloner
@@ -121,7 +122,7 @@ names map `isaacsim.foo.bar` → `isaacsim-foo-bar`.
 
 | Legacy extension | Rust crate | Phase | Status |
 |---|---|---|---|
-| isaacsim.robot.experimental.wheeled_robots | `isaacsim-robot-wheeled` | 1 | ✅ all five controllers ported with legacy tests (differential, Ackermann, holonomic, Stanley, quintic planner); `robots/` USD wrappers → Phase 2 |
+| isaacsim.robot.experimental.wheeled_robots | `isaacsim-robot-wheeled` | 1 | ✅ all five controllers + `HolonomicRobotUsdSetup` stage reader (runs on in-memory and OpenUSD backends); `WheeledRobot` runtime wrapper needs the simulation core |
 | isaacsim.robot.experimental.manipulators.examples | — | 3 | ⬜ |
 | isaacsim.robot.policy.examples | — | 3 | ⬜ |
 | isaacsim.robot.poser (+ .ui) | — | 3 | ⬜ |
@@ -146,7 +147,7 @@ names map `isaacsim.foo.bar` → `isaacsim-foo-bar`.
 | isaacsim.asset.gen.conveyor (+ .ui) | — | 3 | ⬜ |
 | isaacsim.asset.gen.omap (+ .ui) | — | 3 | ⬜ |
 | isaacsim.asset.importer.heightmap | — | 3 | ⬜ |
-| isaacsim.asset.importer.mjcf (+ .ui) | — | 3 | ⬜ |
+| isaacsim.asset.importer.mjcf (+ .ui) | — | 3 | ⛔ parsing lives in the external `mujoco-usd-converter` package; the in-repo layer is Kit/USD orchestration only — nothing to port |
 | isaacsim.asset.importer.urdf (+ .ui) | `isaacsim-asset-urdf` (parsing layer) | 3 | 🚧 parser + merge_fixed_joints ported with legacy tests; USD conversion/mesh/PhysX downstream |
 | isaacsim.asset.importer.utils | — | 3 | ⬜ |
 | isaacsim.asset.transformer (+ .rules, .ui) | — | 3 | ⬜ |

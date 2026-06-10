@@ -10,8 +10,8 @@
 //!
 //! The reader is a *subset* parser: it handles the constructs this crate
 //! authors plus common simple assets (def/over/class blocks, single-line
-//! attribute values, inherit metadata) and skips attribute metadata,
-//! relationships, and other composition arcs it does not model.
+//! attribute values, relationships, inherit metadata) and skips attribute
+//! metadata and other composition arcs it does not model.
 
 use crate::stage::{Stage, UpAxis};
 use crate::value::Value;
@@ -95,10 +95,19 @@ fn write_prim(stage: &Stage, path: &str, indent: usize, out: &mut String) {
             format_attribute(attr_name, value)
         ));
     }
+    for (rel_name, targets) in &prim.relationships {
+        let targets: Vec<String> = targets.iter().map(|t| format!("<{t}>")).collect();
+        let value = if targets.len() == 1 {
+            targets[0].clone()
+        } else {
+            format!("[{}]", targets.join(", "))
+        };
+        out.push_str(&format!("{pad}    rel {rel_name} = {value}\n"));
+    }
 
     let children = stage.children(path);
     for (i, child) in children.iter().enumerate() {
-        if i > 0 || !prim.attributes.is_empty() {
+        if i > 0 || !prim.attributes.is_empty() || !prim.relationships.is_empty() {
             out.push('\n');
         }
         write_prim(stage, child, indent + 1, out);
@@ -170,9 +179,9 @@ fn escape(s: &str) -> String {
 /// Parse `.usda` text into a [`Stage`].
 ///
 /// Subset reader: understands `def`/`over`/`class` prim blocks, single-line
-/// attribute values of the types in [`Value`], `inherits` prim metadata, and
-/// the `upAxis` layer metadata. Unrecognized statements (relationships,
-/// references, time samples, attribute metadata, …) are skipped.
+/// attribute values of the types in [`Value`], relationships, `inherits`
+/// prim metadata, and the `upAxis` layer metadata. Unrecognized statements
+/// (references, time samples, attribute metadata, …) are skipped.
 pub fn parse_usda(text: &str) -> Result<Stage, String> {
     let mut lines = text.lines().enumerate().peekable();
 
@@ -262,8 +271,14 @@ pub fn parse_usda(text: &str) -> Result<Stage, String> {
             continue;
         }
 
-        // Attribute line inside a prim body
+        // Attribute or relationship line inside a prim body
         if let Some(prim_path) = path_stack.last() {
+            if let Some((name, targets)) = parse_relationship(&line) {
+                stage
+                    .set_relationship_targets(prim_path, &name, &targets)
+                    .map_err(|e| err(&e))?;
+                continue;
+            }
             if let Some((name, value)) = parse_attribute(&line) {
                 stage
                     .set_attribute(prim_path, &name, value)
@@ -356,6 +371,30 @@ fn parse_inherits(metadata: &str) -> Vec<String> {
             item.strip_prefix('<')?.strip_suffix('>').map(str::to_string)
         })
         .collect()
+}
+
+/// Parse `[prepend|append|delete] rel name = <target>` or `= [<a>, <b>]`.
+/// Relationship declarations without targets return `None`.
+fn parse_relationship(line: &str) -> Option<(String, Vec<String>)> {
+    let mut rest = line;
+    for modifier in ["custom ", "prepend ", "append ", "varying "] {
+        if let Some(stripped) = rest.strip_prefix(modifier) {
+            rest = stripped;
+        }
+    }
+    let rest = rest.strip_prefix("rel ")?;
+    let (name, value) = rest.split_once('=')?;
+    let targets: Vec<String> = value
+        .split(['[', ']', ','])
+        .filter_map(|item| {
+            let item = item.trim();
+            item.strip_prefix('<')?.strip_suffix('>').map(str::to_string)
+        })
+        .collect();
+    if targets.is_empty() {
+        return None;
+    }
+    Some((name.trim().to_string(), targets))
 }
 
 /// Parse `[uniform] [custom] <type> name = value` for the supported types.
@@ -574,6 +613,36 @@ def Xform "World" (
             Some(Value::Quatf(_))
         ));
         assert_eq!(stage.get_attribute("/World/Child", "unknownType"), None);
+    }
+
+    #[test]
+    fn test_relationship_round_trip() {
+        let mut stage = sample_stage();
+        stage
+            .set_relationship_targets(
+                "/World/Cube_0",
+                "physics:body0",
+                &["/World".to_string()],
+            )
+            .unwrap();
+        stage
+            .set_relationship_targets(
+                "/World/Cube_0",
+                "physics:filteredGroups",
+                &["/World/A".to_string(), "/World/B".to_string()],
+            )
+            .unwrap();
+
+        let parsed = parse_usda(&write_usda(&stage)).unwrap();
+        assert_eq!(
+            parsed.relationship_targets("/World/Cube_0", "physics:body0"),
+            Some(vec!["/World".to_string()])
+        );
+        assert_eq!(
+            parsed.relationship_targets("/World/Cube_0", "physics:filteredGroups"),
+            Some(vec!["/World/A".to_string(), "/World/B".to_string()])
+        );
+        assert_eq!(parsed.relationship_targets("/World/Cube_0", "missing"), None);
     }
 
     /// Verbatim output of pxr USD 26.5 (`Usd.Stage.CreateNew` + UsdGeom
