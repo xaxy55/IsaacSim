@@ -1,0 +1,17 @@
+[package]
+name = "isaacsim-app"
+description = "Isaac Sim application entry point (Rust rewrite)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "isaacsim"
+path = "src/main.rs"
+
+[dependencies]
+isaacsim-core-version = { path = "../isaacsim-core-version" }
+
+[lints]
+workspace = true
