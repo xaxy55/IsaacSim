@@ -6,6 +6,7 @@ members = [
     "crates/isaacsim-core-version",
     "crates/isaacsim-robot-wheeled",
     "crates/isaacsim-scene",
+    "crates/isaacsim-usd",
     "crates/isaacsim-app",
 ]
 

@@ -6,7 +6,7 @@
 //! Port of `python/impl/grid_cloner.py` from the legacy `isaacsim.core.cloner`
 //! extension.
 
-use isaacsim_scene::{Stage, UpAxis};
+use isaacsim_scene::{SceneStage, UpAxis};
 
 use crate::cloner::{CloneOptions, Cloner};
 
@@ -46,7 +46,11 @@ impl GridCloner {
     }
 
     /// Create a `Scope` prim at `base_env_path` (see [`Cloner::define_base_env`]).
-    pub fn define_base_env(&mut self, stage: &mut Stage, base_env_path: &str) -> Result<(), String> {
+    pub fn define_base_env<S: SceneStage>(
+        &mut self,
+        stage: &mut S,
+        base_env_path: &str,
+    ) -> Result<(), String> {
         self.cloner.define_base_env(stage, base_env_path)
     }
 
@@ -66,9 +70,9 @@ impl GridCloner {
     /// Errors if an offset array length does not match `num_clones` or
     /// `num_per_row` is zero.
     #[allow(clippy::type_complexity)]
-    pub fn get_clone_transforms(
+    pub fn get_clone_transforms<S: SceneStage>(
         &mut self,
-        stage: &Stage,
+        stage: &S,
         num_clones: usize,
         position_offsets: Option<&[[f64; 3]]>,
         orientation_offsets: Option<&[[f64; 4]]>,
@@ -156,9 +160,9 @@ impl GridCloner {
     /// Create clones in a grid pattern with automatically computed positions.
     ///
     /// Returns the computed positions of all clones.
-    pub fn clone(
+    pub fn clone<S: SceneStage>(
         &mut self,
-        stage: &mut Stage,
+        stage: &mut S,
         source_prim_path: &str,
         prim_paths: &[String],
         position_offsets: Option<&[[f64; 3]]>,
@@ -184,7 +188,7 @@ impl GridCloner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use isaacsim_scene::Value;
+    use isaacsim_scene::{Stage, Value};
 
     /// Port of legacy `tests/test_cloner.py::test_grid_cloner`.
     #[test]

@@ -113,6 +113,27 @@ impl Stage {
         self.prims.get(path)?.attributes.get(name)
     }
 
+    /// Remove the attribute authored on the prim at `path`. Removing a
+    /// non-existent attribute (or from a non-existent prim) is not an error.
+    pub fn remove_attribute(&mut self, path: &str, name: &str) {
+        if let Some(prim) = self.prims.get_mut(path) {
+            prim.attributes.remove(name);
+        }
+    }
+
+    /// Prepend `source` to the inherit list of the prim at `path` (no-op if
+    /// already present). Errors if the prim spec does not exist.
+    pub fn add_inherit(&mut self, path: &str, source: &str) -> Result<(), String> {
+        let prim = self
+            .prims
+            .get_mut(path)
+            .ok_or_else(|| format!("prim {path} does not exist"))?;
+        if !prim.inherits.iter().any(|p| p == source) {
+            prim.inherits.insert(0, source.to_string());
+        }
+        Ok(())
+    }
+
     /// Whether a prim exists at `path` in the composed stage: either authored
     /// directly, or brought in through an ancestor's inherit
     /// (`Usd.Prim.IsValid` on the composed stage).
@@ -236,6 +257,49 @@ impl Stage {
             current = parent_path(p).filter(|p| *p != "/");
         }
         None
+    }
+}
+
+impl crate::backend::SceneStage for Stage {
+    fn up_axis(&self) -> UpAxis {
+        Stage::up_axis(self)
+    }
+
+    fn set_up_axis(&mut self, up_axis: UpAxis) {
+        Stage::set_up_axis(self, up_axis);
+    }
+
+    fn define_prim(&mut self, path: &str, type_name: &str) -> Result<(), String> {
+        Stage::define_prim(self, path, type_name).map(|_| ())
+    }
+
+    fn prim_exists(&self, path: &str) -> bool {
+        Stage::prim_exists(self, path)
+    }
+
+    fn type_name(&self, path: &str) -> Option<String> {
+        Stage::composed_type_name(self, path)
+    }
+
+    fn attribute(&self, path: &str, name: &str) -> Option<Value> {
+        Stage::resolve_attribute(self, path, name)
+    }
+
+    fn set_attribute(&mut self, path: &str, name: &str, value: Value) -> Result<(), String> {
+        Stage::set_attribute(self, path, name, value)
+    }
+
+    fn remove_attribute(&mut self, path: &str, name: &str) -> Result<(), String> {
+        Stage::remove_attribute(self, path, name);
+        Ok(())
+    }
+
+    fn add_inherit(&mut self, path: &str, source: &str) -> Result<(), String> {
+        Stage::add_inherit(self, path, source)
+    }
+
+    fn copy_spec(&mut self, source: &str, dest: &str) -> Result<(), String> {
+        Stage::copy_spec(self, source, dest)
     }
 }
 

@@ -9,11 +9,13 @@
 //! backend; a real USD backend (FFI or `openusd-rs`) can be bound behind the
 //! same API later, per the strategy in ROADMAP.md.
 
+pub mod backend;
 pub mod path;
 pub mod stage;
 pub mod usda;
 pub mod value;
 
+pub use backend::SceneStage;
 pub use path::{is_valid_path_string, parent_path};
 pub use stage::{Prim, Stage, UpAxis};
 pub use usda::{parse_usda, write_usda};

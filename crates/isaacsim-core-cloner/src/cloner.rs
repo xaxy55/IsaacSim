@@ -8,7 +8,7 @@
 //! `filter_collisions`, Fabric cloning, notice-handler toggling) depend on
 //! closed-source components and are out of scope; see ROADMAP.md.
 
-use isaacsim_scene::{is_valid_path_string, Stage, Value};
+use isaacsim_scene::{is_valid_path_string, SceneStage, Value};
 
 /// Options for [`Cloner::clone`]. Quaternions are `[w, x, y, z]`.
 #[derive(Debug, Clone, Default)]
@@ -56,7 +56,11 @@ impl Cloner {
 
     /// Create a `Scope` prim at `base_env_path`, designed to be the parent
     /// that holds all clones.
-    pub fn define_base_env(&mut self, stage: &mut Stage, base_env_path: &str) -> Result<(), String> {
+    pub fn define_base_env<S: SceneStage>(
+        &mut self,
+        stage: &mut S,
+        base_env_path: &str,
+    ) -> Result<(), String> {
         stage.define_prim(base_env_path, "Scope")?;
         self.base_env_path = Some(base_env_path.to_string());
         Ok(())
@@ -76,9 +80,9 @@ impl Cloner {
     ///
     /// Errors if the source path is invalid, the source prim does not exist,
     /// or the dimensions of positions/orientations do not match `prim_paths`.
-    pub fn clone(
+    pub fn clone<S: SceneStage>(
         &mut self,
-        stage: &mut Stage,
+        stage: &mut S,
         source_prim_path: &str,
         prim_paths: &[String],
         options: &CloneOptions,
@@ -96,7 +100,7 @@ impl Cloner {
                 return Err("Dimension mismatch between orientations and prim_paths!".to_string());
             }
         }
-        if stage.get_prim(source_prim_path).is_none() {
+        if !stage.prim_exists(source_prim_path) {
             return Err("Source prim does not exist".to_string());
         }
 
@@ -104,20 +108,19 @@ impl Cloner {
         // current values (legacy removes rotate*/transform ops and re-authors
         // the three canonical ops).
         let current_translation = stage
-            .resolve_attribute(source_prim_path, "xformOp:translate")
+            .attribute(source_prim_path, "xformOp:translate")
             .and_then(|v| v.as_vec3d())
             .unwrap_or([0.0, 0.0, 0.0]);
-        let orient_value = stage.resolve_attribute(source_prim_path, "xformOp:orient");
+        let orient_value = stage.attribute(source_prim_path, "xformOp:orient");
         let orient_is_float = matches!(orient_value, Some(Value::Quatf(_)));
         let current_orientation = orient_value
             .and_then(|v| v.as_quatd())
             .unwrap_or([1.0, 0.0, 0.0, 0.0]);
         let current_scale = stage
-            .resolve_attribute(source_prim_path, "xformOp:scale")
+            .attribute(source_prim_path, "xformOp:scale")
             .and_then(|v| v.as_vec3d())
             .unwrap_or([1.0, 1.0, 1.0]);
 
-        let source_prim = stage.get_prim_mut(source_prim_path).expect("checked above");
         for op in [
             "xformOp:rotateX",
             "xformOp:rotateXZY",
@@ -130,7 +133,7 @@ impl Cloner {
             "xformOp:rotateXYZ",
             "xformOp:transform",
         ] {
-            source_prim.attributes.remove(op);
+            stage.remove_attribute(source_prim_path, op)?;
         }
         let orient = |q: [f64; 4]| {
             if orient_is_float {
@@ -144,18 +147,14 @@ impl Cloner {
             "xformOp:orient".to_string(),
             "xformOp:scale".to_string(),
         ]);
-        source_prim
-            .attributes
-            .insert("xformOp:translate".to_string(), Value::Vec3d(current_translation));
-        source_prim
-            .attributes
-            .insert("xformOp:orient".to_string(), orient(current_orientation));
-        source_prim
-            .attributes
-            .insert("xformOp:scale".to_string(), Value::Vec3d(current_scale));
-        source_prim
-            .attributes
-            .insert("xformOpOrder".to_string(), xform_op_order.clone());
+        stage.set_attribute(
+            source_prim_path,
+            "xformOp:translate",
+            Value::Vec3d(current_translation),
+        )?;
+        stage.set_attribute(source_prim_path, "xformOp:orient", orient(current_orientation))?;
+        stage.set_attribute(source_prim_path, "xformOp:scale", Value::Vec3d(current_scale))?;
+        stage.set_attribute(source_prim_path, "xformOpOrder", xform_op_order.clone())?;
 
         for (i, prim_path) in prim_paths.iter().enumerate() {
             let translation = options
@@ -178,25 +177,14 @@ impl Cloner {
                 stage.copy_spec(source_prim_path, prim_path)?;
             } else {
                 stage.define_prim(prim_path, "")?;
-                let prim = stage.get_prim_mut(prim_path).expect("just defined");
-                if !prim.inherits.iter().any(|p| p == source_prim_path) {
-                    prim.inherits.insert(0, source_prim_path.to_string());
-                }
+                stage.add_inherit(prim_path, source_prim_path)?;
             }
 
-            // Keep Quatf precision if the copied spec authored a Quatf orient
-            // (legacy precision handling), otherwise author doubles.
-            let clone_orient = match stage.get_attribute(prim_path, "xformOp:orient") {
-                Some(Value::Quatf(_)) => Value::Quatf([
-                    orientation[0] as f32,
-                    orientation[1] as f32,
-                    orientation[2] as f32,
-                    orientation[3] as f32,
-                ]),
-                _ => orient(orientation),
-            };
+            // Author the same orient precision as the source (legacy
+            // precision handling): copies carry the source's Quatf/Quatd
+            // spec and inherit clones compose the source's attribute type.
             stage.set_attribute(prim_path, "xformOp:translate", Value::Vec3d(translation))?;
-            stage.set_attribute(prim_path, "xformOp:orient", clone_orient)?;
+            stage.set_attribute(prim_path, "xformOp:orient", orient(orientation))?;
             stage.set_attribute(prim_path, "xformOp:scale", Value::Vec3d(current_scale))?;
             stage.set_attribute(prim_path, "xformOpOrder", xform_op_order.clone())?;
         }
@@ -208,6 +196,7 @@ impl Cloner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use isaacsim_scene::Stage;
 
     /// Port of legacy `tests/test_cloner.py::test_simple_cloner`.
     #[test]
