@@ -10,9 +10,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "isaacsim-core-math"
+version = "6.0.0-rc.59"
+
+[[package]]
 name = "isaacsim-core-version"
 version = "6.0.0-rc.59"
 
 [[package]]
 name = "isaacsim-robot-wheeled"
 version = "6.0.0-rc.59"
+dependencies = [
+ "isaacsim-core-math",
+]

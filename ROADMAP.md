@@ -45,8 +45,15 @@ behind Rust traits so backends can be swapped later.
 - [x] First ports: `isaacsim.core.version`, wheeled-robot controllers
 - [x] `isaacsim` CLI binary stub
 
-### Phase 1 — Core utilities (pure logic, no Kit/USD dependency)
+### Phase 1 — Core utilities (pure logic, no Kit/USD dependency) ✅
 Math/transform utilities, version/config handling, pure-Python algorithm ports.
+- [x] `isaacsim-core-version` — version parsing/retrieval
+- [x] `isaacsim-core-math` — transform utilities (quaternion/Euler/rotation-matrix
+  conversions, look-at, relative transforms) from `isaacsim.core.experimental.utils`
+- [x] `isaacsim-robot-wheeled` — all five controllers (differential, Ackermann,
+  holonomic, Stanley, quintic planner)
+- [x] Remaining Phase 1 rows triaged as n/a (Python import shims, C++ headers,
+  Kit test scaffolding — no Rust equivalent needed)
 
 ### Phase 2 — Scene & simulation core
 USD bindings, simulation manager, cloner, prim wrappers. Requires a USD
@@ -73,14 +80,14 @@ names map `isaacsim.foo.bar` → `isaacsim-foo-bar`.
 |---|---|---|---|
 | isaacsim.core.version | `isaacsim-core-version` | 1 | ✅ |
 | isaacsim.core.cloner | — | 2 | ⬜ |
-| isaacsim.core.deprecation_manager | — | 1 | ⬜ |
+| isaacsim.core.deprecation_manager | — | 1 | n/a — Python import shim around carb/Kit; no Rust equivalent needed |
 | isaacsim.core.experimental.actuators | — | 2 | ⬜ |
 | isaacsim.core.experimental.materials | — | 2 | ⬜ |
 | isaacsim.core.experimental.objects | — | 2 | ⬜ |
 | isaacsim.core.experimental.primdata | — | 2 | ⬜ |
 | isaacsim.core.experimental.prims | — | 2 | ⬜ |
-| isaacsim.core.experimental.utils | `isaacsim-core-math` (transform subset) | 1 | 📋 |
-| isaacsim.core.includes | — (C++ headers; superseded by crate APIs) | 1 | ⬜ |
+| isaacsim.core.experimental.utils | `isaacsim-core-math` (transform subset) | 1 | ✅ transform module ported with legacy tests; remaining modules (stage, prim, xform, ops, …) are USD/Kit-bound → Phase 2 |
+| isaacsim.core.includes | — (C++ headers; superseded by crate APIs) | 1 | n/a |
 | isaacsim.core.nodes | — | 2 | ⬜ |
 | isaacsim.core.rendering_manager | — | 5 | ⛔ RTX |
 | isaacsim.core.simulation_manager | — | 2 | ⬜ |
@@ -90,7 +97,7 @@ names map `isaacsim.foo.bar` → `isaacsim-foo-bar`.
 
 | Legacy extension | Rust crate | Phase | Status |
 |---|---|---|---|
-| isaacsim.robot.experimental.wheeled_robots | `isaacsim-robot-wheeled` | 1 | 🚧 differential + Ackermann controllers ported; holonomic, Stanley, quintic planner remaining |
+| isaacsim.robot.experimental.wheeled_robots | `isaacsim-robot-wheeled` | 1 | ✅ all five controllers ported with legacy tests (differential, Ackermann, holonomic, Stanley, quintic planner); `robots/` USD wrappers → Phase 2 |
 | isaacsim.robot.experimental.manipulators.examples | — | 3 | ⬜ |
 | isaacsim.robot.policy.examples | — | 3 | ⬜ |
 | isaacsim.robot.poser (+ .ui) | — | 3 | ⬜ |
@@ -164,7 +171,7 @@ names map `isaacsim.foo.bar` → `isaacsim-foo-bar`.
 | isaacsim.code_editor.* (3) | — | 4 | ⬜ |
 | isaacsim.hsb.* (3) | — | 4 | ⬜ |
 | isaacsim.storage.native | — | 2 | ⬜ |
-| isaacsim.test.* (3) | — (replaced by `cargo test`) | 1 | ⬜ |
+| isaacsim.test.* (3) | — (replaced by `cargo test`) | 1 | n/a |
 | isaacsim.util.camera_inspector / .physics | — | 3 | ⬜ |
 | isaacsim.pip.newton, omni.pip.* | — (replaced by Cargo dependencies) | — | n/a |
 | omni.isaac.core_archive, omni.kit.loop-isaac | — | 2 | ⬜ |
