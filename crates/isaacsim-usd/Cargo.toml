@@ -1,0 +1,24 @@
+[package]
+name = "isaacsim-usd"
+description = "OpenUSD backend for Isaac Sim: implements the isaacsim-scene stage API over the C++ OpenUSD library via FFI"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+build = "build.rs"
+
+[features]
+# Enable the FFI binding. Requires an OpenUSD install; set USD_ROOT to its
+# prefix (default: /opt/openusd).
+openusd = []
+
+[dependencies]
+isaacsim-scene = { path = "../isaacsim-scene" }
+
+[dev-dependencies]
+isaacsim-core-cloner = { path = "../isaacsim-core-cloner" }
+isaacsim-robot-wheeled = { path = "../isaacsim-robot-wheeled" }
+isaacsim-asset-urdf = { path = "../isaacsim-asset-urdf" }
+
+[lints]
+workspace = true

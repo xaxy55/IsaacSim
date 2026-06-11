@@ -45,15 +45,61 @@ behind Rust traits so backends can be swapped later.
 - [x] First ports: `isaacsim.core.version`, wheeled-robot controllers
 - [x] `isaacsim` CLI binary stub
 
-### Phase 1 — Core utilities (pure logic, no Kit/USD dependency)
+### Phase 1 — Core utilities (pure logic, no Kit/USD dependency) ✅
 Math/transform utilities, version/config handling, pure-Python algorithm ports.
+- [x] `isaacsim-core-version` — version parsing/retrieval
+- [x] `isaacsim-core-math` — transform utilities (quaternion/Euler/rotation-matrix
+  conversions, look-at, relative transforms) from `isaacsim.core.experimental.utils`
+- [x] `isaacsim-robot-wheeled` — all five controllers (differential, Ackermann,
+  holonomic, Stanley, quintic planner)
+- [x] Remaining Phase 1 rows triaged as n/a (Python import shims, C++ headers,
+  Kit test scaffolding — no Rust equivalent needed)
 
-### Phase 2 — Scene & simulation core
-USD bindings, simulation manager, cloner, prim wrappers. Requires a USD
-strategy decision (FFI vs. native Rust USD).
+### Phase 2 — Scene & simulation core 🚧
+USD bindings, simulation manager, cloner, prim wrappers.
+- [x] `isaacsim-scene` — in-memory stage/prim data model (paths, typed
+  attributes, inherit composition); the native backend behind which a real
+  USD backend can be bound later
+- [x] `isaacsim-core-cloner` — Cloner + GridCloner on top of `isaacsim-scene`
+- [x] **USD strategy decided:** FFI to the C++ OpenUSD library behind the
+  `isaacsim-scene` API (`openusd-rs` is not yet complete enough for
+  composition/physics schemas); the in-memory backend remains for tests
+- [x] `.usda` interop — `isaacsim-scene::usda` writer + subset reader.
+  Rust-authored stages verified against real USD (pxr 26.5 opens exported
+  files; inherit composition, types, and transforms resolve identically;
+  pxr-authored files parse back)
+- [x] `SceneStage` backend trait — the cloner and future logic-layer code
+  are generic over the backend; includes relationships, child traversal,
+  and TRS world-transform composition (`isaacsim-scene::xform`)
+- [x] `isaacsim-usd` — OpenUSD FFI binding crate (C ABI shim + Rust
+  `UsdStage` implementing `SceneStage`, behind the `openusd` feature with
+  `USD_ROOT` pointing at an OpenUSD install). Verified: the ported cloner
+  runs unchanged on real USD stages (built from OpenUSD v25.11 source,
+  imaging/python off) and both backends produce identical results
+- [ ] Simulation manager, prim wrappers, remaining Phase 2 rows
 
-### Phase 3 — Robotics stack
+### Phase 3 — Robotics stack 🚧
 Importers (URDF/MJCF), motion generation, robot setup tools, sensors.
+- [x] `isaacsim-asset-urdf` — URDF parsing layer: XML → robot model
+  (links, joints, limits, dynamics, mimic, safety, materials, geometry),
+  `merge_fixed_joints` pre-processing (transform composition + parallel-axis
+  inertia merging), and a URDF writer. Legacy `test_urdf_utils.py` ported;
+  legacy fixture files parse
+- [x] URDF → stage converter (`convert_urdf_to_stage`) — rigid-body subset
+  of the external `urdf_usd_converter`: links at zero-config world poses,
+  UsdGeom visuals/collisions, UsdPhysics joints with axis alignment and
+  degree limits, MassAPI with principal-axes inertia. Output verified with
+  real USD (UsdPhysics schema accessors, world-transform composition) both
+  via `.usda` export and authored directly through the FFI backend.
+  Mesh tessellation and drives stay downstream (⛔)
+- [x] Stage → URDF exporter (`export_stage_to_urdf`) — rigid-body core of
+  `isaacsim.asset.exporter.urdf`: reads UsdPhysics articulations back into
+  the URDF model (joint axis/origin recovered from the joint frames,
+  degree→radian limits, inertia from diagonal + principal axes).
+  URDF→stage→URDF round trips verified on the in-memory and OpenUSD FFI
+  backends; an authored-vs-fallback divergence between backends was caught
+  and fixed by these tests (the FFI getter now reports authored opinions
+  only)
 
 ### Phase 4 — Connectivity & pipelines
 ROS 2 bridge, UCX, streaming, replicator/synthetic-data writers.
@@ -72,15 +118,15 @@ names map `isaacsim.foo.bar` → `isaacsim-foo-bar`.
 | Legacy extension | Rust crate | Phase | Status |
 |---|---|---|---|
 | isaacsim.core.version | `isaacsim-core-version` | 1 | ✅ |
-| isaacsim.core.cloner | — | 2 | ⬜ |
-| isaacsim.core.deprecation_manager | — | 1 | ⬜ |
+| isaacsim.core.cloner | `isaacsim-core-cloner` (+ `isaacsim-scene`) | 2 | ✅ clone/grid-clone with inherit & copy semantics, legacy tests ported; PhysX replication, collision filtering, Fabric paths ⛔ PhysX/Kit |
+| isaacsim.core.deprecation_manager | — | 1 | n/a — Python import shim around carb/Kit; no Rust equivalent needed |
 | isaacsim.core.experimental.actuators | — | 2 | ⬜ |
 | isaacsim.core.experimental.materials | — | 2 | ⬜ |
 | isaacsim.core.experimental.objects | — | 2 | ⬜ |
 | isaacsim.core.experimental.primdata | — | 2 | ⬜ |
 | isaacsim.core.experimental.prims | — | 2 | ⬜ |
-| isaacsim.core.experimental.utils | `isaacsim-core-math` (transform subset) | 1 | 📋 |
-| isaacsim.core.includes | — (C++ headers; superseded by crate APIs) | 1 | ⬜ |
+| isaacsim.core.experimental.utils | `isaacsim-core-math` (transform subset) | 1 | ✅ transform module ported with legacy tests; remaining modules (stage, prim, xform, ops, …) are USD/Kit-bound → Phase 2 |
+| isaacsim.core.includes | — (C++ headers; superseded by crate APIs) | 1 | n/a |
 | isaacsim.core.nodes | — | 2 | ⬜ |
 | isaacsim.core.rendering_manager | — | 5 | ⛔ RTX |
 | isaacsim.core.simulation_manager | — | 2 | ⬜ |
@@ -90,7 +136,7 @@ names map `isaacsim.foo.bar` → `isaacsim-foo-bar`.
 
 | Legacy extension | Rust crate | Phase | Status |
 |---|---|---|---|
-| isaacsim.robot.experimental.wheeled_robots | `isaacsim-robot-wheeled` | 1 | 🚧 differential + Ackermann controllers ported; holonomic, Stanley, quintic planner remaining |
+| isaacsim.robot.experimental.wheeled_robots | `isaacsim-robot-wheeled` | 1 | ✅ all five controllers + `HolonomicRobotUsdSetup` stage reader (runs on in-memory and OpenUSD backends); `WheeledRobot` runtime wrapper needs the simulation core |
 | isaacsim.robot.experimental.manipulators.examples | — | 3 | ⬜ |
 | isaacsim.robot.policy.examples | — | 3 | ⬜ |
 | isaacsim.robot.poser (+ .ui) | — | 3 | ⬜ |
@@ -111,12 +157,12 @@ names map `isaacsim.foo.bar` → `isaacsim-foo-bar`.
 
 | Legacy extension | Rust crate | Phase | Status |
 |---|---|---|---|
-| isaacsim.asset.exporter.urdf (+ .ui) | — | 3 | ⬜ |
+| isaacsim.asset.exporter.urdf (+ .ui) | `isaacsim-asset-urdf` (`export_stage_to_urdf`) | 3 | 🚧 rigid-body core ported: UsdPhysics articulation → URDF model, verified by URDF→stage→URDF round trips on both backends; mesh export, sensors, cameras remain |
 | isaacsim.asset.gen.conveyor (+ .ui) | — | 3 | ⬜ |
 | isaacsim.asset.gen.omap (+ .ui) | — | 3 | ⬜ |
 | isaacsim.asset.importer.heightmap | — | 3 | ⬜ |
-| isaacsim.asset.importer.mjcf (+ .ui) | — | 3 | ⬜ |
-| isaacsim.asset.importer.urdf (+ .ui) | — | 3 | ⬜ |
+| isaacsim.asset.importer.mjcf (+ .ui) | — | 3 | ⛔ parsing lives in the external `mujoco-usd-converter` package; the in-repo layer is Kit/USD orchestration only — nothing to port |
+| isaacsim.asset.importer.urdf (+ .ui) | `isaacsim-asset-urdf` | 3 | ✅ parser, merge_fixed_joints, writer, and rigid-body URDF→stage converter verified against real UsdPhysics; mesh tessellation + drives ⛔ |
 | isaacsim.asset.importer.utils | — | 3 | ⬜ |
 | isaacsim.asset.transformer (+ .rules, .ui) | — | 3 | ⬜ |
 | isaacsim.asset.validation | — | 3 | ⬜ |
@@ -164,7 +210,7 @@ names map `isaacsim.foo.bar` → `isaacsim-foo-bar`.
 | isaacsim.code_editor.* (3) | — | 4 | ⬜ |
 | isaacsim.hsb.* (3) | — | 4 | ⬜ |
 | isaacsim.storage.native | — | 2 | ⬜ |
-| isaacsim.test.* (3) | — (replaced by `cargo test`) | 1 | ⬜ |
+| isaacsim.test.* (3) | — (replaced by `cargo test`) | 1 | n/a |
 | isaacsim.util.camera_inspector / .physics | — | 3 | ⬜ |
 | isaacsim.pip.newton, omni.pip.* | — (replaced by Cargo dependencies) | — | n/a |
 | omni.isaac.core_archive, omni.kit.loop-isaac | — | 2 | ⬜ |

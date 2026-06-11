@@ -1,13 +1,12 @@
 [package]
-name = "isaacsim-robot-wheeled"
-description = "Wheeled-robot controllers for Isaac Sim (port of isaacsim.robot.experimental.wheeled_robots)"
+name = "isaacsim-core-cloner"
+description = "Object duplication APIs for Isaac Sim (port of isaacsim.core.cloner)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
 [dependencies]
-isaacsim-core-math = { path = "../isaacsim-core-math" }
 isaacsim-scene = { path = "../isaacsim-scene" }
 
 [lints]

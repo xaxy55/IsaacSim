@@ -10,9 +10,65 @@ dependencies = [
 ]
 
 [[package]]
+name = "isaacsim-asset-urdf"
+version = "6.0.0-rc.59"
+dependencies = [
+ "isaacsim-core-math",
+ "isaacsim-scene",
+ "roxmltree",
+]
+
+[[package]]
+name = "isaacsim-core-cloner"
+version = "6.0.0-rc.59"
+dependencies = [
+ "isaacsim-scene",
+]
+
+[[package]]
+name = "isaacsim-core-math"
+version = "6.0.0-rc.59"
+
+[[package]]
 name = "isaacsim-core-version"
 version = "6.0.0-rc.59"
 
 [[package]]
 name = "isaacsim-robot-wheeled"
 version = "6.0.0-rc.59"
+dependencies = [
+ "isaacsim-core-math",
+ "isaacsim-scene",
+]
+
+[[package]]
+name = "isaacsim-scene"
+version = "6.0.0-rc.59"
+dependencies = [
+ "isaacsim-core-math",
+]
+
+[[package]]
+name = "isaacsim-usd"
+version = "6.0.0-rc.59"
+dependencies = [
+ "isaacsim-asset-urdf",
+ "isaacsim-core-cloner",
+ "isaacsim-robot-wheeled",
+ "isaacsim-scene",
+]
+
+[[package]]
+name = "memchr"
+version = "2.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b947ae49db0d222b1dbc6b113ce7248a3fc3a6ca21b696717bfc000ba4484d8"
+
+[[package]]
+name = "roxmltree"
+version = "0.21.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1964b10c76125c36f8afe190065a4bf9a87bf324842c05701330bba9f1cacbb"
+dependencies = [
+ "memchr",
+]
