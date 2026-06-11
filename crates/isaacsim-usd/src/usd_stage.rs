@@ -140,6 +140,16 @@ extern "C" {
         targets: *const *const c_char,
         count: i32,
     ) -> bool;
+    fn isaacsim_usd_apply_api_schema(
+        handle: *mut c_void,
+        path: *const c_char,
+        schema: *const c_char,
+    ) -> bool;
+    fn isaacsim_usd_has_api_schema(
+        handle: *mut c_void,
+        path: *const c_char,
+        schema: *const c_char,
+    ) -> bool;
 }
 
 /// Split a `'\x1f'`-joined list returned by the shim.
@@ -426,5 +436,23 @@ impl SceneStage for UsdStage {
         } else {
             Err(format!("failed to set relationship {name} on {path}"))
         }
+    }
+
+    fn apply_api_schema(&mut self, path: &str, schema: &str) -> Result<(), String> {
+        let c_path = cstring(path)?;
+        let c_schema = cstring(schema)?;
+        if unsafe { isaacsim_usd_apply_api_schema(self.handle, c_path.as_ptr(), c_schema.as_ptr()) }
+        {
+            Ok(())
+        } else {
+            Err(format!("failed to apply API schema {schema} on {path}"))
+        }
+    }
+
+    fn has_api_schema(&self, path: &str, schema: &str) -> bool {
+        let (Ok(c_path), Ok(c_schema)) = (cstring(path), cstring(schema)) else {
+            return false;
+        };
+        unsafe { isaacsim_usd_has_api_schema(self.handle, c_path.as_ptr(), c_schema.as_ptr()) }
     }
 }

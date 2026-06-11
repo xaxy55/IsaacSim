@@ -138,6 +138,72 @@ pub fn mat4_inverse(m: &[[f64; 4]; 4]) -> Option<[[f64; 4]; 4]> {
     Some(inv)
 }
 
+/// Eigendecomposition of a symmetric 3x3 matrix by cyclic Jacobi rotations.
+///
+/// Returns `(eigenvalues, eigenvectors)` where `eigenvectors[i]` is the unit
+/// eigenvector for `eigenvalues[i]`. Used to express inertia tensors as
+/// diagonal inertia plus principal axes.
+pub fn sym3_eigen(m: &[[f64; 3]; 3]) -> ([f64; 3], [[f64; 3]; 3]) {
+    let mut a = *m;
+    // v accumulates the rotations; columns are eigenvectors
+    let mut v = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+    for _ in 0..50 {
+        // Largest off-diagonal element
+        let off = [(0, 1), (0, 2), (1, 2)];
+        let &(p, q) = off
+            .iter()
+            .max_by(|&&(i, j), &&(k, l)| {
+                a[i][j]
+                    .abs()
+                    .partial_cmp(&a[k][l].abs())
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
+            .expect("non-empty");
+        if a[p][q].abs() < 1e-15 {
+            break;
+        }
+        // Jacobi rotation annihilating a[p][q]
+        let theta = 0.5 * (2.0 * a[p][q]).atan2(a[q][q] - a[p][p]);
+        let (s, c) = theta.sin_cos();
+        let mut r = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+        r[p][p] = c;
+        r[q][q] = c;
+        r[p][q] = s;
+        r[q][p] = -s;
+        // a = r^T a r ; v = v r
+        let rt_a = mat3_mul_generic(&mat3_transpose_generic(&r), &a);
+        a = mat3_mul_generic(&rt_a, &r);
+        v = mat3_mul_generic(&v, &r);
+    }
+    let eigenvalues = [a[0][0], a[1][1], a[2][2]];
+    let eigenvectors = [
+        [v[0][0], v[1][0], v[2][0]],
+        [v[0][1], v[1][1], v[2][1]],
+        [v[0][2], v[1][2], v[2][2]],
+    ];
+    (eigenvalues, eigenvectors)
+}
+
+fn mat3_mul_generic(a: &[[f64; 3]; 3], b: &[[f64; 3]; 3]) -> [[f64; 3]; 3] {
+    let mut out = [[0.0; 3]; 3];
+    for (i, row) in a.iter().enumerate() {
+        for j in 0..3 {
+            out[i][j] = (0..3).map(|k| row[k] * b[k][j]).sum();
+        }
+    }
+    out
+}
+
+fn mat3_transpose_generic(m: &[[f64; 3]; 3]) -> [[f64; 3]; 3] {
+    let mut out = [[0.0; 3]; 3];
+    for (i, row) in m.iter().enumerate() {
+        for (j, value) in row.iter().enumerate() {
+            out[j][i] = *value;
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -149,6 +215,36 @@ mod tests {
         assert_eq!(x, [2.0, 3.0, 3.0]);
         let singular = [[1.0, 2.0, 3.0], [2.0, 4.0, 6.0], [0.0, 0.0, 1.0]];
         assert!(solve3(&singular, [1.0, 2.0, 3.0]).is_none());
+    }
+
+    #[test]
+    fn test_sym3_eigen() {
+        // Diagonal matrix: eigenvalues are the diagonal, axes are identity
+        let (values, vectors) = sym3_eigen(&[[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 5.0]]);
+        assert_eq!(values, [2.0, 3.0, 5.0]);
+        for (i, vector) in vectors.iter().enumerate() {
+            for (j, component) in vector.iter().enumerate() {
+                let expected = if i == j { 1.0 } else { 0.0 };
+                assert!((component - expected).abs() < 1e-12);
+            }
+        }
+
+        // Symmetric matrix with known decomposition:
+        // [[2,1,0],[1,2,0],[0,0,3]] has eigenvalues 1, 3, 3
+        let m = [[2.0, 1.0, 0.0], [1.0, 2.0, 0.0], [0.0, 0.0, 3.0]];
+        let (values, vectors) = sym3_eigen(&m);
+        let mut sorted = values;
+        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        assert!((sorted[0] - 1.0).abs() < 1e-12);
+        assert!((sorted[1] - 3.0).abs() < 1e-12);
+        assert!((sorted[2] - 3.0).abs() < 1e-12);
+        // Each eigenpair satisfies M v = lambda v
+        for (lambda, v) in values.iter().zip(&vectors) {
+            let mv = mat3_mul_vec3(&m, *v);
+            for (a, b) in mv.iter().zip(v) {
+                assert!((a - lambda * b).abs() < 1e-12, "Mv != lambda v");
+            }
+        }
     }
 
     #[test]

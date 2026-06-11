@@ -7,15 +7,19 @@
 //! extension: URDF XML → [`Robot`](model::Robot) model, the
 //! [`merge_fixed_joints`] pre-processing pass (transform composition and
 //! parallel-axis inertia merging from `python/impl/urdf_utils.py`), and a
-//! URDF writer for the file-to-file flow. The USD conversion, mesh handling,
-//! and PhysX setup stay downstream (see ROADMAP.md).
+//! URDF writer for the file-to-file flow, plus a rigid-body
+//! URDF → stage converter ([`convert_urdf_to_stage`]) targeting any
+//! `isaacsim-scene` backend. Mesh tessellation and PhysX runtime setup stay
+//! downstream (see ROADMAP.md).
 
+pub mod convert;
 pub mod merge;
 pub mod model;
 pub mod parse;
 pub mod transform;
 pub mod write;
 
+pub use convert::convert_urdf_to_stage;
 pub use merge::merge_fixed_joints;
 pub use model::{
     Collision, Geometry, Inertia, Inertial, Joint, JointCalibration, JointDynamics, JointLimit,

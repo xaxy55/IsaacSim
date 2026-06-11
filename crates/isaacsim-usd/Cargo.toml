@@ -18,6 +18,7 @@ isaacsim-scene = { path = "../isaacsim-scene" }
 [dev-dependencies]
 isaacsim-core-cloner = { path = "../isaacsim-core-cloner" }
 isaacsim-robot-wheeled = { path = "../isaacsim-robot-wheeled" }
+isaacsim-asset-urdf = { path = "../isaacsim-asset-urdf" }
 
 [lints]
 workspace = true

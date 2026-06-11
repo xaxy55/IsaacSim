@@ -75,16 +75,28 @@ fn write_prim(stage: &Stage, path: &str, indent: usize, out: &mut String) {
     } else {
         out.push_str(&format!("def {} \"{name}\"", prim.type_name));
     }
-    if !prim.inherits.is_empty() {
-        let targets: Vec<String> = prim.inherits.iter().map(|p| format!("<{p}>")).collect();
-        out.push_str(&format!(
-            " (\n{pad}    prepend inherits = {}\n{pad})",
-            if targets.len() == 1 {
-                targets[0].clone()
-            } else {
-                format!("[{}]", targets.join(", "))
-            }
-        ));
+    if !prim.inherits.is_empty() || !prim.api_schemas.is_empty() {
+        out.push_str(" (\n");
+        if !prim.api_schemas.is_empty() {
+            let schemas: Vec<String> =
+                prim.api_schemas.iter().map(|s| format!("\"{}\"", escape(s))).collect();
+            out.push_str(&format!(
+                "{pad}    prepend apiSchemas = [{}]\n",
+                schemas.join(", ")
+            ));
+        }
+        if !prim.inherits.is_empty() {
+            let targets: Vec<String> = prim.inherits.iter().map(|p| format!("<{p}>")).collect();
+            out.push_str(&format!(
+                "{pad}    prepend inherits = {}\n",
+                if targets.len() == 1 {
+                    targets[0].clone()
+                } else {
+                    format!("[{}]", targets.join(", "))
+                }
+            ));
+        }
+        out.push_str(&format!("{pad})"));
     }
     out.push('\n');
     out.push_str(&format!("{pad}{{\n"));
@@ -252,6 +264,9 @@ pub fn parse_usda(text: &str) -> Result<Stage, String> {
                         prim.inherits.push(target);
                     }
                 }
+                for schema in parse_api_schemas(&meta) {
+                    stage.apply_api_schema(&path, &schema).map_err(|e| err(&e))?;
+                }
             }
             // Opening brace on this line or the next
             if !rest.starts_with('{') {
@@ -395,6 +410,26 @@ fn parse_relationship(line: &str) -> Option<(String, Vec<String>)> {
         return None;
     }
     Some((name.trim().to_string(), targets))
+}
+
+/// Extract applied schema names from a prim metadata block containing an
+/// `apiSchemas = [...]` statement (with optional `prepend`/`append`).
+fn parse_api_schemas(metadata: &str) -> Vec<String> {
+    let Some(idx) = metadata.find("apiSchemas") else {
+        return Vec::new();
+    };
+    let after = &metadata[idx..];
+    let Some(eq) = after.find('=') else {
+        return Vec::new();
+    };
+    let value = after[eq + 1..]
+        .split(['\n', ')'])
+        .next()
+        .unwrap_or("");
+    value
+        .split(['[', ']', ','])
+        .filter_map(|item| parse_quoted(item.trim()))
+        .collect()
 }
 
 /// Parse `[uniform] [custom] <type> name = value` for the supported types.

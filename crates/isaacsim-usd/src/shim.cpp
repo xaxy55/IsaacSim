@@ -204,6 +204,28 @@ bool isaacsim_usd_set_relationship_targets(void* handle, const char* path, const
     return rel.SetTargets(paths);
 }
 
+bool isaacsim_usd_apply_api_schema(void* handle, const char* path, const char* schema) {
+    UsdPrim prim = stage(handle)->GetPrimAtPath(SdfPath(path));
+    if (!prim) {
+        return false;
+    }
+    return prim.AddAppliedSchema(TfToken(schema));
+}
+
+bool isaacsim_usd_has_api_schema(void* handle, const char* path, const char* schema) {
+    UsdPrim prim = stage(handle)->GetPrimAtPath(SdfPath(path));
+    if (!prim) {
+        return false;
+    }
+    TfToken token(schema);
+    for (const TfToken& applied : prim.GetAppliedSchemas()) {
+        if (applied == token) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool isaacsim_usd_remove_attribute(void* handle, const char* path, const char* name) {
     UsdPrim prim = stage(handle)->GetPrimAtPath(SdfPath(path));
     if (!prim) {

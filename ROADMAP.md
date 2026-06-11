@@ -84,8 +84,14 @@ Importers (URDF/MJCF), motion generation, robot setup tools, sensors.
   (links, joints, limits, dynamics, mimic, safety, materials, geometry),
   `merge_fixed_joints` pre-processing (transform composition + parallel-axis
   inertia merging), and a URDF writer. Legacy `test_urdf_utils.py` ported;
-  legacy fixture files parse. USD conversion stays downstream (mesh handling
-  and PhysX setup are ⛔)
+  legacy fixture files parse
+- [x] URDF → stage converter (`convert_urdf_to_stage`) — rigid-body subset
+  of the external `urdf_usd_converter`: links at zero-config world poses,
+  UsdGeom visuals/collisions, UsdPhysics joints with axis alignment and
+  degree limits, MassAPI with principal-axes inertia. Output verified with
+  real USD (UsdPhysics schema accessors, world-transform composition) both
+  via `.usda` export and authored directly through the FFI backend.
+  Mesh tessellation and drives stay downstream (⛔)
 
 ### Phase 4 — Connectivity & pipelines
 ROS 2 bridge, UCX, streaming, replicator/synthetic-data writers.
@@ -148,7 +154,7 @@ names map `isaacsim.foo.bar` → `isaacsim-foo-bar`.
 | isaacsim.asset.gen.omap (+ .ui) | — | 3 | ⬜ |
 | isaacsim.asset.importer.heightmap | — | 3 | ⬜ |
 | isaacsim.asset.importer.mjcf (+ .ui) | — | 3 | ⛔ parsing lives in the external `mujoco-usd-converter` package; the in-repo layer is Kit/USD orchestration only — nothing to port |
-| isaacsim.asset.importer.urdf (+ .ui) | `isaacsim-asset-urdf` (parsing layer) | 3 | 🚧 parser + merge_fixed_joints ported with legacy tests; USD conversion/mesh/PhysX downstream |
+| isaacsim.asset.importer.urdf (+ .ui) | `isaacsim-asset-urdf` | 3 | ✅ parser, merge_fixed_joints, writer, and rigid-body URDF→stage converter verified against real UsdPhysics; mesh tessellation + drives ⛔ |
 | isaacsim.asset.importer.utils | — | 3 | ⬜ |
 | isaacsim.asset.transformer (+ .rules, .ui) | — | 3 | ⬜ |
 | isaacsim.asset.validation | — | 3 | ⬜ |

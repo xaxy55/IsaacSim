@@ -35,6 +35,8 @@ pub struct Prim {
     pub attributes: BTreeMap<String, Value>,
     /// Authored relationships by name (target prim paths).
     pub relationships: BTreeMap<String, Vec<String>>,
+    /// Applied API schema names (e.g. `"PhysicsRigidBodyAPI"`).
+    pub api_schemas: Vec<String>,
     /// Paths this prim inherits from, strongest first.
     pub inherits: Vec<String>,
 }
@@ -134,6 +136,33 @@ impl Stage {
             prim.inherits.insert(0, source.to_string());
         }
         Ok(())
+    }
+
+    /// Append an API schema to the prim at `path` (no-op if already
+    /// applied). Errors if the prim spec does not exist.
+    pub fn apply_api_schema(&mut self, path: &str, schema: &str) -> Result<(), String> {
+        let prim = self
+            .prims
+            .get_mut(path)
+            .ok_or_else(|| format!("prim {path} does not exist"))?;
+        if !prim.api_schemas.iter().any(|s| s == schema) {
+            prim.api_schemas.push(schema.to_string());
+        }
+        Ok(())
+    }
+
+    /// Whether `schema` is applied on the prim at `path`
+    /// (`Usd.Prim.HasAPI`), following inherit composition.
+    pub fn has_api_schema(&self, path: &str, schema: &str) -> bool {
+        self.compose(path, &mut |prim| {
+            if prim.api_schemas.iter().any(|s| s == schema) {
+                Some(())
+            } else {
+                None
+            }
+        })
+        .flatten()
+        .is_some()
     }
 
     /// The composed targets of relationship `name` on the prim at `path`.
@@ -344,6 +373,14 @@ impl crate::backend::SceneStage for Stage {
         targets: &[String],
     ) -> Result<(), String> {
         Stage::set_relationship_targets(self, path, name, targets)
+    }
+
+    fn apply_api_schema(&mut self, path: &str, schema: &str) -> Result<(), String> {
+        Stage::apply_api_schema(self, path, schema)
+    }
+
+    fn has_api_schema(&self, path: &str, schema: &str) -> bool {
+        Stage::has_api_schema(self, path, schema)
     }
 }
 

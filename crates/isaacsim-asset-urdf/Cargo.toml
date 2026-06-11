@@ -8,6 +8,7 @@ repository.workspace = true
 
 [dependencies]
 isaacsim-core-math = { path = "../isaacsim-core-math" }
+isaacsim-scene = { path = "../isaacsim-scene" }
 roxmltree = "0.21"
 
 [lints]

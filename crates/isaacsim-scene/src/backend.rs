@@ -64,6 +64,13 @@ pub trait SceneStage {
         name: &str,
         targets: &[String],
     ) -> Result<(), String>;
+
+    /// Apply an API schema (by name, e.g. `"PhysicsRigidBodyAPI"`) to the
+    /// prim at `path`.
+    fn apply_api_schema(&mut self, path: &str, schema: &str) -> Result<(), String>;
+
+    /// Whether `schema` is applied on the prim at `path` (`Usd.Prim.HasAPI`).
+    fn has_api_schema(&self, path: &str, schema: &str) -> bool;
 }
 
 /// Depth-first pre-order traversal of the subtree rooted at `path`,

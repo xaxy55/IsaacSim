@@ -14,6 +14,7 @@ name = "isaacsim-asset-urdf"
 version = "6.0.0-rc.59"
 dependencies = [
  "isaacsim-core-math",
+ "isaacsim-scene",
  "roxmltree",
 ]
 
@@ -51,6 +52,7 @@ dependencies = [
 name = "isaacsim-usd"
 version = "6.0.0-rc.59"
 dependencies = [
+ "isaacsim-asset-urdf",
  "isaacsim-core-cloner",
  "isaacsim-robot-wheeled",
  "isaacsim-scene",
