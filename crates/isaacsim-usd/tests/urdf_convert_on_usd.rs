@@ -7,7 +7,9 @@
 
 #![cfg(feature = "openusd")]
 
-use isaacsim_asset_urdf::{convert_urdf_to_stage, merge_fixed_joints, parse_urdf_file};
+use isaacsim_asset_urdf::{
+    convert_urdf_to_stage, export_stage_to_urdf, merge_fixed_joints, parse_urdf_file, JointType,
+};
 use isaacsim_scene::{SceneStage, Value};
 use isaacsim_usd::UsdStage;
 
@@ -51,5 +53,25 @@ fn test_urdf_to_real_usd_stage() {
     assert_eq!(
         parsed.relationship_targets(elbow, "physics:body1"),
         Some(vec!["/test_limits/link_2".to_string()])
+    );
+
+    // Full round trip: read the real USD stage back into a URDF robot model
+    let round_tripped = export_stage_to_urdf(&stage, "/test_limits", "test_limits").unwrap();
+    assert_eq!(round_tripped.links.len(), robot.links.len());
+    assert_eq!(round_tripped.joints.len(), robot.joints.len());
+    let rt_elbow = round_tripped.joint("elbow_joint").unwrap();
+    let orig_elbow = robot.joint("elbow_joint").unwrap();
+    assert_eq!(rt_elbow.joint_type, JointType::Revolute);
+    assert_eq!(rt_elbow.parent, orig_elbow.parent);
+    assert_eq!(rt_elbow.child, orig_elbow.child);
+    let (rt_limit, orig_limit) = (rt_elbow.limit.unwrap(), orig_elbow.limit.unwrap());
+    assert!((rt_limit.lower - orig_limit.lower).abs() < 1e-6);
+    assert!((rt_limit.upper - orig_limit.upper).abs() < 1e-6);
+    for (a, b) in rt_elbow.axis.iter().zip(&orig_elbow.axis) {
+        assert!((a - b).abs() < 1e-6);
+    }
+    assert_eq!(
+        round_tripped.joint("base_joint").unwrap().joint_type,
+        JointType::Continuous
     );
 }

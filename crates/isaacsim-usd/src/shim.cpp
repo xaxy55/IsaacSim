@@ -328,7 +328,10 @@ int isaacsim_usd_get_attr(void* handle, const char* path, const char* name, doub
     }
     UsdAttribute attr = prim.GetAttribute(TfToken(name));
     VtValue value;
-    if (!attr || !attr.Get(&value)) {
+    // Authored opinions only: schema fallback values (e.g. a revolute
+    // joint's +/-inf limits) are not visible on the in-memory backend, and
+    // returning them here would make backend behavior diverge.
+    if (!attr || !attr.HasAuthoredValue() || !attr.Get(&value)) {
         return kNone;
     }
     if (value.IsHolding<bool>()) {

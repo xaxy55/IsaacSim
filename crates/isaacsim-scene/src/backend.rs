@@ -33,7 +33,9 @@ pub trait SceneStage {
     /// does not exist.
     fn type_name(&self, path: &str) -> Option<String>;
 
-    /// The composed value of attribute `name` on the prim at `path`.
+    /// The composed *authored* value of attribute `name` on the prim at
+    /// `path`. Schema fallback values are not reported (the in-memory
+    /// backend has no schema registry, so backends would otherwise diverge).
     fn attribute(&self, path: &str, name: &str) -> Option<Value>;
 
     /// Author attribute `name` on the prim at `path`.

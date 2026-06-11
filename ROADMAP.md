@@ -92,6 +92,14 @@ Importers (URDF/MJCF), motion generation, robot setup tools, sensors.
   real USD (UsdPhysics schema accessors, world-transform composition) both
   via `.usda` export and authored directly through the FFI backend.
   Mesh tessellation and drives stay downstream (⛔)
+- [x] Stage → URDF exporter (`export_stage_to_urdf`) — rigid-body core of
+  `isaacsim.asset.exporter.urdf`: reads UsdPhysics articulations back into
+  the URDF model (joint axis/origin recovered from the joint frames,
+  degree→radian limits, inertia from diagonal + principal axes).
+  URDF→stage→URDF round trips verified on the in-memory and OpenUSD FFI
+  backends; an authored-vs-fallback divergence between backends was caught
+  and fixed by these tests (the FFI getter now reports authored opinions
+  only)
 
 ### Phase 4 — Connectivity & pipelines
 ROS 2 bridge, UCX, streaming, replicator/synthetic-data writers.
@@ -149,7 +157,7 @@ names map `isaacsim.foo.bar` → `isaacsim-foo-bar`.
 
 | Legacy extension | Rust crate | Phase | Status |
 |---|---|---|---|
-| isaacsim.asset.exporter.urdf (+ .ui) | — | 3 | ⬜ |
+| isaacsim.asset.exporter.urdf (+ .ui) | `isaacsim-asset-urdf` (`export_stage_to_urdf`) | 3 | 🚧 rigid-body core ported: UsdPhysics articulation → URDF model, verified by URDF→stage→URDF round trips on both backends; mesh export, sensors, cameras remain |
 | isaacsim.asset.gen.conveyor (+ .ui) | — | 3 | ⬜ |
 | isaacsim.asset.gen.omap (+ .ui) | — | 3 | ⬜ |
 | isaacsim.asset.importer.heightmap | — | 3 | ⬜ |
